@@ -1,0 +1,478 @@
+COMPLETE AND HONEST FRONTEND + LOGIC AUDIT
+Project: DAA Algorithm Visualizer (React)
+Date: April 9, 2026
+
+============================================================
+CRITICAL FINDINGS FIRST
+============================================================
+
+1) Critical logic bug in Kruskal with duplicate identical edges.
+   - Edge identity is based on string "u|v|weight".
+   - Edge state is keyed by that id.
+   - Final MST is reconstructed by id membership.
+   - This causes collisions and incorrect MST results when identical edges repeat.
+   - Evidence:
+     src/features/mst/kruskalTrace.js:1
+     src/features/mst/kruskalTrace.js:148
+     src/features/mst/kruskalTrace.js:158
+     src/features/mst/kruskalTrace.js:201
+     src/features/mst/kruskalTrace.js:240
+   - Runtime check result (executed): duplicate-edge input returned 3 MST edges for 3 nodes (impossible) with wrong total weight.
+
+2) High conceptual correctness issue in Kruskal for disconnected graphs.
+   - It still reports "MST complete" instead of minimum spanning forest or disconnected warning.
+   - Evidence:
+     src/features/mst/kruskalTrace.js:245
+
+3) Medium requirement mismatch in String Matching page.
+   - UI label says "Pattern (5-word phrase)" but no enforcement exists.
+   - Evidence:
+     src/features/stringMatching/StringMatchingPage.jsx:93
+     src/features/stringMatching/naiveStringMatching.js:1
+
+4) Medium requirement mismatch in Merge Sort page.
+   - UI says sorted arrays, but unsorted input only gives warning and still runs.
+   - Evidence:
+     src/features/mergeSort/MergeSortPage.jsx:157
+     src/features/mergeSort/MergeSortPage.jsx:160
+
+5) Quality gap in navigation/routing.
+   - No URL-based routing/deep links/history support.
+   - Uses local tab state only.
+   - Evidence:
+     src/main.jsx:1
+     src/App.jsx:10
+     src/App.jsx:42
+     package.json:12
+
+Additional checks completed:
+- ESLint run: clean (no reported issues).
+- Runtime sanity checks:
+  - Naive String Matching: correct on sample.
+  - Merge Sort: correct on sample.
+  - Kruskal: duplicate-edge and disconnected-graph issues confirmed.
+
+
+============================================================
+SECTION 1: PROJECT STRUCTURE
+============================================================
+
+Observed full structure (excluding expanded internals of node_modules):
+
+.gitignore
+.sixth/
+.sixth/skills/ (empty)
+dist/
+dist/favicon.svg
+dist/icons.svg
+dist/index.html
+dist/assets/index-Be1iDQdx.js
+dist/assets/index-CyjX9y2t.css
+node_modules/
+public/
+public/favicon.svg
+public/icons.svg
+src/
+src/App.jsx
+src/index.css
+src/main.jsx
+src/components/CodeSnippetCard.jsx
+src/components/ComplexityCard.jsx
+src/components/PlaybackControls.jsx
+src/components/QuestionCard.jsx
+src/components/Sidebar.jsx
+src/data/questions.js
+src/features/mergeSort/MergeSortPage.jsx
+src/features/mergeSort/mergeSortTrace.js
+src/features/mst/MstPage.jsx
+src/features/mst/kruskalTrace.js
+src/features/stringMatching/StringMatchingPage.jsx
+src/features/stringMatching/naiveStringMatching.js
+src/hooks/usePlayback.js
+eslint.config.js
+index.html
+package-lock.json
+package.json
+postcss.config.js
+README.md
+tailwind.config.js
+vite.config.js
+
+Purpose of major files/components:
+
+- src/main.jsx: entry point that mounts React app.
+- src/App.jsx: main shell layout + tab system + active feature rendering.
+- src/index.css: global theme (fonts, gradients, base styles, scrollbars).
+- src/components/Sidebar.jsx: left navigation tabs.
+- src/components/PlaybackControls.jsx: shared play/pause/next/prev/reset/speed/scrubber controls.
+- src/components/QuestionCard.jsx: displays full question statement block.
+- src/components/ComplexityCard.jsx: displays complexity/theory bullet points.
+- src/components/CodeSnippetCard.jsx: displays pseudocode snippet.
+- src/data/questions.js: text for Question 3/8/13.
+- src/hooks/usePlayback.js: shared playback timing and state transitions.
+- src/features/stringMatching/*: naive matching logic + UI visualization.
+- src/features/mergeSort/*: merge sort trace logic + UI visualization.
+- src/features/mst/*: Kruskal trace logic + UI visualization.
+
+Entry point and routing system:
+
+- Entry point: src/main.jsx.
+- Routing: no react-router; no BrowserRouter/Routes/Route.
+- Navigation method: local tab state in App + Sidebar onChange.
+
+
+============================================================
+SECTION 2: UI / FRONTEND DESCRIPTION
+============================================================
+
+Overall layout:
+
+- Desktop/tablet (md+): 2-column grid
+  - Left: sidebar (sticky)
+  - Right: main content panel
+- Mobile: stacked layout (sidebar above content)
+
+Theme and style:
+
+- Light visual style.
+- Teal/cyan/amber palette.
+- Background includes layered radial gradients + linear gradient + subtle grid overlay.
+- Rounded cards, borders, soft shadows, glass-like panel styling.
+- Fonts: Space Grotesk for UI, IBM Plex Mono for code blocks.
+
+Navigation between 3 features:
+
+- Sidebar tabs:
+  1. String Matching (Question 3)
+  2. Merge Sort (Question 8)
+  3. Minimum Spanning Tree (Question 13)
+- Clicking a tab changes active component.
+- Panel transition uses Framer Motion fade/slide animation.
+
+Responsiveness:
+
+- Sidebar is sticky on md+.
+- Feature pages use two-column input/controls layout on xl.
+- Visualization areas use horizontal scroll when content is wide.
+- MST graph has min width 760 px, so mobile needs horizontal scrolling.
+
+
+Feature 1: Naive String Matching page
+
+Visible components:
+- Question card (full Q3 statement)
+- Input Configuration panel
+- Playback controls panel
+- Character-by-Character Visualization panel
+- Live Metrics panel
+- Pseudocode card
+- Complexity card
+
+Inputs:
+- Large Text (textarea)
+- Pattern input
+- "Load Worst-Case Example" button
+
+Buttons/controls:
+- Play/Pause
+- Previous
+- Next
+- Reset
+- Step scrubber slider
+- Animation speed slider
+
+Animations:
+- Active compared text character scales up.
+- Active pattern character shifts vertically.
+- Tab and page transitions animate.
+
+Displayed during execution:
+- Active window [start, end]
+- Current step type
+- Highlighted compare window
+- Match/mismatch coloring
+- Comparisons so far
+- Shifts so far
+- Final comparisons/shifts
+- Match indices
+- Step message text
+
+
+Feature 2: Merge Sort page
+
+Visible components:
+- Question card (full Q8 statement)
+- Input Arrays panel
+- Playback controls panel
+- Recursive Split Tree panel
+- Merge Decision View panel
+- Pseudocode card
+- Master Theorem card
+- Step Summary panel
+
+Inputs:
+- Sorted Array 1 input
+- Sorted Array 2 input
+
+Buttons/controls:
+- Shared playback controls (Play/Pause/Prev/Next/Reset)
+- Step scrubber
+- Speed slider
+
+Animations:
+- Active array cell scales.
+- Active tree node scales.
+- Page/tab transitions animate.
+
+Displayed during execution:
+- Combined array
+- Final sorted output
+- Sorted status for each input array
+- Invalid token warning (if any)
+- Active recursive path
+- Merge message
+- Left/Right/Merged-so-far arrays
+- Step summary (type, length, result)
+
+
+Feature 3: Kruskal MST page
+
+Visible components:
+- Question card (full Q13 statement)
+- Graph Input panel
+- Playback controls panel
+- 2D Graph and Edge Selection panel
+- Sorted Edge Processing Order panel
+- Union-Find Snapshot panel
+- Pseudocode card
+- Complexity card
+- MST Result panel
+
+Inputs:
+- Nodes input (comma-separated)
+- Edges textarea (TownA, TownB, Weight per line)
+
+Buttons/controls:
+- Shared playback controls
+- Step scrubber
+- Speed slider
+
+Animations:
+- Edge style/stroke transitions by state (pending/current/accepted/rejected)
+- Page/tab transitions animate
+- Nodes are static circles
+
+Displayed during execution:
+- Current step message
+- Graph with weighted edges
+- Edge states in sorted processing list
+- Parent/rank snapshot for each node
+- Path compression logs (when present)
+- Current MST weight
+- Final MST edge list and total weight
+
+
+============================================================
+SECTION 3: QUESTION DISPLAY CHECK
+============================================================
+
+Question 3, 8, and 13 display status:
+
+- Full question text exists in src/data/questions.js for all three questions.
+- Each feature page renders QuestionCard at the top using its corresponding question object.
+- QuestionCard clearly shows:
+  - Title in a large heading
+  - Full statement in a preformatted block
+
+Result:
+- Q3 full text shown: YES
+- Q8 full text shown: YES
+- Q13 full text shown: YES
+- Clearly labeled: YES
+
+
+============================================================
+SECTION 4: ALGORITHM CORRECTNESS (VERY IMPORTANT)
+============================================================
+
+1) Naive String Matching correctness
+
+Checklist:
+- Checks all valid positions i=0..n-m: YES
+- Character-by-character comparison: YES
+- Indexing text[i+j], pattern[j]: YES
+- Match detection j==m: YES
+- Mismatch handling and shift: YES
+- Overlapping matches supported: YES
+
+Code behavior assessment:
+- Implementation is algorithmically correct for naive exhaustive matching.
+
+
+2) Merge Sort correctness
+
+Checklist:
+- Recursive split with base case length<=1: YES
+- Proper array splitting at midpoint: YES
+- Merge compare loop correct: YES
+- Left/right drain loops correct: YES
+- Returns merged arrays correctly: YES
+- Mutation bug risk in core logic: LOW (uses copied arrays)
+
+Code behavior assessment:
+- Implementation is algorithmically correct for merge sort visualization.
+
+
+3) Kruskal correctness
+
+Checklist:
+- Edges sorted by non-decreasing weight: YES
+- Union-Find used: YES
+- Path compression: YES
+- Union by rank: YES
+- Cycle prevention (root comparison): YES
+
+Critical correctness caveats:
+- Duplicate identical edges break correctness due id collision strategy.
+- Disconnected graph still reported as MST complete.
+
+Code behavior assessment:
+- Core Kruskal steps are implemented, but edge identity design introduces a real correctness defect.
+
+
+============================================================
+SECTION 5: VISUALIZATION QUALITY
+============================================================
+
+Naive String Matching:
+- Accurate and trace-based, not cosmetic.
+- Steps explicitly include compare/match-found/shift/done.
+- User can follow position-by-position behavior.
+
+Merge Sort:
+- Accurate and trace-based, not cosmetic.
+- Steps include split, merge-compare, drain-left, drain-right, merge-complete, done.
+- Good educational step visibility.
+
+Kruskal:
+- Also step-based and generally informative.
+- Shows start/check/accept/reject/done and union-find snapshots.
+- Visualization quality is good, but correctness is compromised in duplicate-edge scenario.
+
+Overall visualization quality:
+- Strong educational UX.
+- Real step progression exists in all three modules.
+
+
+============================================================
+SECTION 6: TIME COMPLEXITY + THEORY
+============================================================
+
+Required theory checks:
+
+Q3:
+- O(n*m) shown in question statement: YES
+- O(n*m) shown in complexity panel: YES
+
+Q8:
+- Recurrence T(n)=2T(n/2)+O(n) shown: YES
+- O(n log n) shown: YES
+- Master Theorem parameters shown: YES
+
+Q13:
+- O(E log E) shown in question statement: YES
+- O(E log E) discussed in complexity panel: YES
+
+Master Theorem explanation correctness:
+- Correct.
+- a=2, b=2, f(n)=n, n^(log_b a)=n, Case 2 => O(n log n).
+
+
+============================================================
+SECTION 7: INTERACTIVITY
+============================================================
+
+- Play/Pause working: YES
+- Speed control: YES (slider)
+- Step-by-step mode: YES (Previous/Next + scrubber)
+- Reset: YES
+- Progress percentage and step counter: YES
+
+Input validation status:
+
+String Matching:
+- Handles empty input and pattern longer than text.
+- Does NOT enforce "5-word phrase" requirement.
+
+Merge Sort:
+- Detects non-numeric tokens and reports invalid tokens.
+- Checks whether arrays are sorted and displays Yes/No.
+- Does NOT block execution on unsorted arrays.
+
+Kruskal:
+- Validates edge format.
+- Validates declared nodes.
+- Rejects self-loops.
+- Rejects non-numeric weights.
+- Does NOT handle duplicate-edge identity safely.
+
+
+============================================================
+SECTION 8: BUGS / ISSUES
+============================================================
+
+1) Critical logic bug:
+- Duplicate identical edges in Kruskal can produce invalid MST output.
+
+2) High conceptual issue:
+- Disconnected graph still labeled as MST complete.
+
+3) Medium rendering/data issue:
+- Duplicate edge ids reused as React keys in MST edge rendering and list rows.
+
+4) Medium requirement mismatch:
+- String matching pattern is labeled as 5-word phrase but not validated.
+
+5) Medium requirement mismatch:
+- Merge sort page asks for sorted arrays but does not enforce precondition.
+
+6) Medium product quality gap:
+- No URL routing/deep-link support; tab state only.
+
+7) Low responsive usability gap:
+- MST graph requires horizontal scrolling on small devices.
+
+8) Low engineering quality gap:
+- No automated tests found for algorithm traces and edge cases.
+
+9) Low repository hygiene issue:
+- dist artifacts are present in workspace (may be acceptable for demo, but not ideal for source-only submission).
+
+
+============================================================
+SECTION 9: FINAL VERDICT
+============================================================
+
+Submission-ready: NO
+
+Quality level estimate:
+- Around C+ to B- in current state.
+
+Why not submission-ready:
+- Kruskal has a confirmed correctness defect in duplicate-edge scenario.
+- Disconnected graph handling is conceptually incorrect for MST claim.
+- Some stated input requirements are not enforced.
+
+MUST FIX BEFORE SUBMISSION:
+
+1) Fix Kruskal edge identity and MST reconstruction so duplicate identical edges are handled correctly.
+2) Detect disconnected graphs and report minimum spanning forest (or clearly state graph not connected).
+3) Enforce or clearly revise input constraints:
+   - String matching "5-word phrase"
+   - Merge sort "sorted arrays" requirement
+4) Add minimal deterministic test cases for all three trace generators, especially Kruskal edge cases.
+
+
+============================================================
+END OF REPORT
+============================================================
