@@ -1,19 +1,33 @@
 # DAA Algorithm Visualizer
 
-A clean, minimal React application for step-by-step visualization of three algorithms:
+Interactive React app for step-by-step visualization of:
 
-1. Naive String Matching (Q3)
-1. Merge Sort (Q8)
-1. Kruskal Minimum Spanning Tree (Q13)
+1. Q3: Naive String Matching
+2. Q8: Merge Sort
+3. Q13: Kruskal Minimum Spanning Tree (MST)
 
-This version is focused on correctness and clarity.
+The project focuses on algorithm correctness, input-driven traces, and clear per-step visual feedback.
+
+## Current Highlights
+
+- Dynamic, input-driven traces for all three algorithms.
+- Shared playback controls (Play/Pause, Previous, Next, Speed).
+- Pseudocode panel with active line highlighting per step.
+- Theme toggle (dark/light) with persistence.
+- Enhanced UI effects:
+  - `PillNav` animated navbar
+  - `TextType` animated title/subtitle typing
+  - `SplashCursor` fluid cursor effect
+  - `PixelSnow` background shader effect
 
 ## Tech Stack
 
-- React
-- Tailwind CSS
-- Framer Motion (used only for meaningful step transitions)
+- React 19
 - Vite
+- Tailwind CSS
+- Framer Motion
+- GSAP
+- Three.js
 
 ## Run Locally
 
@@ -41,23 +55,59 @@ npm.cmd run dev
 npm run build
 ```
 
-## Minimal UI Structure
+1. Run lint:
 
-Each algorithm page contains only:
+```bash
+npm run lint
+```
 
-1. Title
-1. Input section (manual fields + Run + Reset)
-1. Controls (Play/Pause, Previous Step, Next Step, Speed slider)
-1. Visualization area
-1. Output section (final result + important values)
-1. Pseudocode panel
+## Defaults
 
-Removed features:
+### String Matching
 
-- Teacher mode
-- Demo scripts
-- Sample input/output presentation panels
-- Dashboard-style sidebar and extra cards
+- Text: `ABABDABACDABABCABAB`
+- Pattern: `ABABC`
+
+### Merge Sort
+
+- Left array: `[1, 4, 9]`
+- Right array: `[2, 3, 6]`
+
+## Algorithm Notes
+
+### Q3 Naive String Matching
+
+- Sliding window comparison with detailed per-character trace.
+- Match/mismatch highlighting in visualization.
+- Stops after first full match in current logic.
+- Output includes match indices, comparisons, and shifts.
+
+Complexity:
+
+- Best case: O(n)
+- Worst case: O(n * m)
+
+### Q8 Merge Sort
+
+- Two sorted arrays are combined and recursively merge-sorted.
+- SVG recursion tree with programmatic layout.
+- Tree visibility grows step-by-step (not fully shown at first step).
+- Merge phase is incremental: parent node updates as merged values are appended.
+
+Complexity:
+
+- O(n log n)
+
+### Q13 Kruskal MST
+
+- Edges sorted by weight.
+- Union-Find with path compression and union by rank.
+- Edge states: pending/current/accepted/rejected.
+- MST selection capped at `V - 1` accepted edges.
+
+Complexity:
+
+- O(E log E)
 
 ## Project Structure
 
@@ -66,7 +116,14 @@ Removed features:
 |- src/
 |  |- components/
 |  |  |- CodeSnippetCard.jsx
+|  |  |- PillNav.jsx
+|  |  |- PillNav.css
+|  |  |- PixelSnow.jsx
+|  |  |- PixelSnow.css
 |  |  |- PlaybackControls.jsx
+|  |  |- SplashCursor.jsx
+|  |  |- TextType.jsx
+|  |  |- TextType.css
 |  |- features/
 |  |  |- stringMatching/
 |  |  |  |- StringMatchingPage.jsx
@@ -84,63 +141,12 @@ Removed features:
 |  |- main.jsx
 ```
 
-## Algorithm Accuracy Notes
-
-### Q3 Naive String Matching
-
-- Checks every shift i from 0 to n - m
-- Compares characters one-by-one with j
-- Visualization shows:
-  - current window
-  - current character comparison
-  - match in green
-  - mismatch in red
-  - pattern shifting to the right
-- Output includes total comparisons, total shifts, and match indices
-
-Complexity:
-
-- Best case: O(n)
-- Worst case: O(n * m)
-
-### Q8 Merge Sort
-
-- Two sorted input arrays are combined and processed with merge sort
-- Tree is dynamic per step (not pre-rendered)
-- Visualization shows:
-  - split operations
-  - recursive calls
-  - active merge pair
-  - merged values updating live
-- Output includes final sorted array and total merge comparisons
-
-Complexity:
-
-- O(n log n)
-
-Recurrence:
-
-- T(n) = 2T(n/2) + O(n)
-
-### Q13 Kruskal MST
-
-- Edges are sorted by weight
-- Union-Find with path compression and union by rank
-- Each edge has a unique id in trace
-- Visualization shows each step:
-  - current edge (yellow)
-  - accepted edge (green)
-  - rejected edge (red)
-  - union-find parent updates
-- MST acceptance is explicitly capped at V - 1 edges
-- Output includes MST edges, total MST weight, and disconnected graph notice
-
-Complexity:
-
-- O(E log E)
-
 ## Validation Status
 
 - ESLint: passing
 - Production build: passing
-- Dev server: runs successfully
+- Dev server: running successfully
+
+Note:
+
+- Build may show a chunk size warning due shader/animation libraries; this is currently non-blocking.
